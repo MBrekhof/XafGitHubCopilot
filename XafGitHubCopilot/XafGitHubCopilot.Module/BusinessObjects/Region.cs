@@ -7,6 +7,8 @@ using DevExpress.Persistent.BaseImpl.EF;
 namespace XafGitHubCopilot.Module.BusinessObjects
 {
     [DefaultClassOptions]
+    [NavigationItem("Geography")]
+    [ImageName("BO_Country")]
     [DefaultProperty(nameof(Name))]
     public class Region : BaseObject
     {

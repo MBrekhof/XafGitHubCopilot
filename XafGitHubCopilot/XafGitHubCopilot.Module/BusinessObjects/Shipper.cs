@@ -7,6 +7,8 @@ using DevExpress.Persistent.BaseImpl.EF;
 namespace XafGitHubCopilot.Module.BusinessObjects
 {
     [DefaultClassOptions]
+    [NavigationItem("Geography")]
+    [ImageName("BO_Shipment")]
     [DefaultProperty(nameof(CompanyName))]
     public class Shipper : BaseObject
     {

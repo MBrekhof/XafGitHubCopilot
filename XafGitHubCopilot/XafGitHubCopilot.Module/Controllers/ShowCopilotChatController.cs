@@ -19,9 +19,9 @@ namespace XafGitHubCopilot.Module.Controllers
         {
             TargetWindowType = WindowType.Main;
 
-            _showCopilotChatAction = new SimpleAction(this, "ShowCopilotChat", PredefinedCategory.Tools)
+            _showCopilotChatAction = new SimpleAction(this, "ShowCopilotChat", PredefinedCategory.View)
             {
-                Caption = "Copilot Chat",
+                Caption = "New Copilot Chat",
                 ImageName = "Actions_EnterGroup",
                 ToolTip = "Open the GitHub Copilot AI chat assistant"
             };

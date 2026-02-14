@@ -6,6 +6,8 @@ using DevExpress.Persistent.BaseImpl.EF;
 namespace XafGitHubCopilot.Module.BusinessObjects
 {
     [DefaultClassOptions]
+    [NavigationItem("Sales")]
+    [ImageName("BO_OrderItem")]
     [DefaultProperty(nameof(Quantity))]
     public class OrderItem : BaseObject
     {

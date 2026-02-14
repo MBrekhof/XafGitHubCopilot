@@ -8,6 +8,8 @@ using DevExpress.Persistent.BaseImpl.EF;
 namespace XafGitHubCopilot.Module.BusinessObjects
 {
     [DefaultClassOptions]
+    [NavigationItem("Geography")]
+    [ImageName("BO_Position")]
     [DefaultProperty(nameof(Name))]
     public class Territory : BaseObject
     {

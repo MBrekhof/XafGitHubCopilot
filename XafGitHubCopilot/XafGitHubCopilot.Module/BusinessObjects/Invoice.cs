@@ -8,6 +8,8 @@ using DevExpress.Persistent.BaseImpl.EF;
 namespace XafGitHubCopilot.Module.BusinessObjects
 {
     [DefaultClassOptions]
+    [NavigationItem("Sales")]
+    [ImageName("BO_Invoice")]
     [DefaultProperty(nameof(InvoiceNumber))]
     public class Invoice : BaseObject
     {

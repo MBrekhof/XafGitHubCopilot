@@ -5,6 +5,8 @@ using DevExpress.Persistent.BaseImpl.EF;
 namespace XafGitHubCopilot.Module.BusinessObjects
 {
     [DefaultClassOptions]
+    [NavigationItem("HR")]
+    [ImageName("BO_Department")]
     public class EmployeeTerritory : BaseObject
     {
         public virtual Guid EmployeeId { get; set; }

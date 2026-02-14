@@ -36,12 +36,12 @@ namespace XafGitHubCopilot.Module.Controllers
         {
             TargetWindowType = WindowType.Main;
 
-            _selectModelAction = new SingleChoiceAction(this, "SelectCopilotModel", PredefinedCategory.Tools)
+            _selectModelAction = new SingleChoiceAction(this, "SelectCopilotModel", PredefinedCategory.View)
             {
                 Caption = "Copilot Model",
                 ImageName = "ModelEditor_Class",
                 ToolTip = "Select the AI model for Copilot Chat",
-                ItemType = SingleChoiceActionItemType.ItemIsOperation,
+                ItemType = SingleChoiceActionItemType.ItemIsMode,
             };
 
             foreach (var model in AvailableModels)

@@ -7,6 +7,8 @@ using DevExpress.Persistent.BaseImpl.EF;
 namespace XafGitHubCopilot.Module.BusinessObjects
 {
     [DefaultClassOptions]
+    [NavigationItem("Catalog")]
+    [ImageName("BO_Category")]
     [DefaultProperty(nameof(Name))]
     public class Category : BaseObject
     {
