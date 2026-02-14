@@ -41,13 +41,14 @@ namespace XafGitHubCopilot.Module.Services
             var lastUserMessage = chatMessages.LastOrDefault(m => m.Role == ChatRole.User);
             var prompt = lastUserMessage?.Text ?? string.Empty;
 
-            var response = await _service.AskAsync(prompt, cancellationToken);
-
-            yield return new ChatResponseUpdate
+            await foreach (var chunk in _service.AskStreamingAsync(prompt, cancellationToken).ConfigureAwait(false))
             {
-                Role = ChatRole.Assistant,
-                Contents = [new TextContent(response)]
-            };
+                yield return new ChatResponseUpdate
+                {
+                    Role = ChatRole.Assistant,
+                    Contents = [new TextContent(chunk)]
+                };
+            }
         }
 
         public object GetService(Type serviceType, object serviceKey = null)

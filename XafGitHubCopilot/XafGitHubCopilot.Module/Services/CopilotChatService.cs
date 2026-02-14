@@ -1,6 +1,8 @@
 using System;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
@@ -95,6 +97,77 @@ namespace XafGitHubCopilot.Module.Services
                 }).ConfigureAwait(false);
 
                 return await completion.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                subscription.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Streams response deltas as they arrive from the Copilot SDK.
+        /// Each yielded string is a partial content chunk.
+        /// </summary>
+        public async IAsyncEnumerable<string> AskStreamingAsync(
+            string prompt,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(prompt);
+
+            await EnsureStartedAsync().ConfigureAwait(false);
+
+            var channel = Channel.CreateUnbounded<string>(new UnboundedChannelOptions
+            {
+                SingleWriter = true,
+                SingleReader = true
+            });
+
+            await using var session = await _client.CreateSessionAsync(new SessionConfig
+            {
+                Model = _options.Model,
+                Streaming = true
+            }).ConfigureAwait(false);
+
+            var errorHolder = new TaskCompletionSource<Exception?>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            var subscription = session.On(evt =>
+            {
+                switch (evt)
+                {
+                    case AssistantMessageDeltaEvent delta:
+                        channel.Writer.TryWrite(delta.Data.DeltaContent);
+                        break;
+                    case AssistantMessageEvent message:
+                        if (!string.IsNullOrEmpty(message.Data.Content))
+                            channel.Writer.TryWrite(message.Data.Content);
+                        break;
+                    case SessionErrorEvent error:
+                        errorHolder.TrySetResult(new InvalidOperationException(error.Data.Message));
+                        channel.Writer.TryComplete();
+                        break;
+                    case SessionIdleEvent:
+                        errorHolder.TrySetResult(null);
+                        channel.Writer.TryComplete();
+                        break;
+                }
+            });
+
+            try
+            {
+                await session.SendAsync(new MessageOptions
+                {
+                    Prompt = prompt
+                }).ConfigureAwait(false);
+
+                await foreach (var chunk in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    yield return chunk;
+                }
+
+                // Check if the session ended with an error
+                var ex = await errorHolder.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+                if (ex is not null)
+                    throw ex;
             }
             finally
             {
