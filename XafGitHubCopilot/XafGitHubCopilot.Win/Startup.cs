@@ -11,9 +11,11 @@ using DevExpress.Persistent.Base;
 using DevExpress.Persistent.BaseImpl.EF.PermissionPolicy;
 using DevExpress.XtraEditors;
 using Microsoft.EntityFrameworkCore;
+using DevExpress.AIIntegration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using XafGitHubCopilot.Module.Services;
 
 namespace XafGitHubCopilot.Win
@@ -35,6 +37,15 @@ namespace XafGitHubCopilot.Win
             builder.Services.AddCopilotSdk(configuration);
             // Enable DevExpress AI infrastructure (required by AIChatControl).
             builder.Services.AddDevExpressAI();
+
+            // Register the CopilotChatClient with the DevExpress desktop AI container
+            // so that AIChatControl (Blazor Hybrid) can resolve IChatClient.
+            var copilotOptions = Options.Create(
+                configuration.GetSection(CopilotOptions.SectionName).Get<CopilotOptions>() ?? new CopilotOptions());
+            var loggerFactory = LoggerFactory.Create(lb => { });
+            var copilotService = new CopilotChatService(copilotOptions, loggerFactory.CreateLogger<CopilotChatService>());
+            var copilotChatClient = new CopilotChatClient(copilotService);
+            AIExtensionsContainerDesktop.Default.RegisterChatClient(copilotChatClient);
             // Register 3rd-party IoC containers (like Autofac, Dryloc, etc.)
             // builder.UseServiceProviderFactory(new DryIocServiceProviderFactory());
             // builder.UseServiceProviderFactory(new AutofacServiceProviderFactory());
