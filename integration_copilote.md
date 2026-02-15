@@ -35,8 +35,17 @@ Integrate the **GitHub Copilot SDK** (`GitHub.Copilot.SDK` NuGet package) into t
 1. **NuGet package** `GitHub.Copilot.SDK 0.1.23` added to `XafGitHubCopilot.Module.csproj`.
 2. **`CopilotOptions`** — configuration POCO bound to `appsettings.json` section `"Copilot"`.
 3. **`CopilotChatService`** — singleton service that manages the Copilot CLI lifecycle (auto-start, streaming, send/receive).
-4. **`ServiceCollectionExtensions.AddCopilotSdk()`** — DI registration helper.
-5. **Blazor Server `Startup.cs`** updated to call `services.AddCopilotSdk(Configuration)`.
+4. **`CopilotChatClient`** — `IChatClient` adapter so DevExpress `DxAIChat` routes messages through the Copilot SDK.
+5. **`ServiceCollectionExtensions.AddCopilotSdk()`** — DI registration helper (registers options, singleton, and `IChatClient`).
+6. **Blazor Server `Startup.cs`** updated to call `services.AddCopilotSdk(Configuration)` and `services.AddDevExpressAI()`.
+7. **`CopilotChat`** — non-persistent `DomainComponent` business object for the chat Detail View.
+8. **`IModelCopilotChatViewItem`** — XAF model interface for the custom ViewItem.
+9. **`CopilotChatViewItemBlazor`** — Blazor ViewItem hosting `DxAIChat`.
+10. **`CopilotChat.razor`** — Blazor component with **5 prompt suggestions**, a **system prompt** with full domain context, **Markdown rendering** (Markdig + HtmlSanitizer), and streaming.
+11. **`ShowCopilotChatController`** — Window controller with navigation item + toolbar action.
+12. **`SelectCopilotModelController`** — Runtime model switcher (gpt-4o, gpt-5, claude-sonnet-4, etc.).
+13. **`Markdig`** and **`HtmlSanitizer`** NuGet packages added to the Blazor Server project.
+14. **Northwind seed data** in `Updater.cs` — 20 customers, 5 employees, 30 products, 50 orders, 20 invoices.
 
 ---
 
@@ -200,10 +209,24 @@ OnUserInputRequest = async (request, invocation) =>
 - [x] Add `GitHub.Copilot.SDK` NuGet package
 - [x] Create `CopilotOptions` configuration class
 - [x] Create `CopilotChatService` singleton
+- [x] Create `CopilotChatClient` IChatClient adapter
 - [x] Create `ServiceCollectionExtensions.AddCopilotSdk()`
 - [x] Register services in Blazor Server `Startup.cs`
+- [x] Create `CopilotChat` non-persistent business object
+- [x] Create `IModelCopilotChatViewItem` model interface
+- [x] Create `CopilotChatViewItemBlazor` ViewItem
+- [x] Create `ShowCopilotChatController` (navigation + action)
+- [x] Create `SelectCopilotModelController` (model switcher)
+- [x] Seed Northwind data in `Updater.cs`
 
-### Phase 2 — Read-Only Tools (Use Cases 1, 2, 3, 4)
+### Phase 2 — Prompt Suggestions & System Prompt (done)
+
+- [x] Add 5 prompt suggestions mapped to the demo use cases
+- [x] Add system prompt with full domain model context
+- [x] Add Markdown rendering (Markdig + HtmlSanitizer)
+- [x] Add `Markdig` and `HtmlSanitizer` NuGet packages
+
+### Phase 3 — Read-Only Tools (Use Cases 1, 2, 3, 4)
 
 - [ ] Create a `CopilotToolsProvider` class in the Module that registers all tools
 - [ ] Implement `query_orders` tool (Use Case 1)
@@ -213,16 +236,16 @@ OnUserInputRequest = async (request, invocation) =>
 - [ ] Implement `employee_territories` tool (Use Case 4)
 - [ ] Create an XAF controller with a UI action to open a Copilot chat panel
 
-### Phase 3 — Write-Back & Conversation (Use Case 5)
+### Phase 4 — Write-Back & Conversation (Use Case 5)
 
 - [ ] Implement `create_order` tool with IObjectSpace write-back
 - [ ] Wire up `OnUserInputRequest` for disambiguation
 - [ ] Add validation and error handling for entity resolution
 
-### Phase 4 — Polish & Demo
+### Phase 5 — Polish & Demo
 
 - [ ] Add system message customization for the business domain context
-- [ ] Seed the database with sample Northwind data (Updater.cs)
+- [x] Seed the database with sample Northwind data (Updater.cs)
 - [ ] Build a demo script walking through all 5 use cases
 - [ ] Test streaming UX in the Blazor chat panel
 

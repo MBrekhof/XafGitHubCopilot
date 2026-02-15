@@ -2,20 +2,49 @@
 
 @using DevExpress.AIIntegration.Blazor.Chat
 @using DevExpress.Blazor
+@using Microsoft.Extensions.AI
+@using XafGitHubCopilot.Module.Services
 
 <div class="copilot-chat-container">
     <DxAIChat CssClass="copilot-chat"
               UseStreaming="true"
               SizeMode="SizeMode.Medium"
-              ResponseContentFormat="ResponseContentFormat.Markdown">
+              ResponseContentFormat="ResponseContentFormat.Markdown"
+              Initialized="OnChatInitialized">
+        <PromptSuggestions>
+            @foreach (var s in CopilotChatDefaults.PromptSuggestions)
+            {
+                <DxAIChatPromptSuggestion Title="@s.Title"
+                                          Text="@s.Text"
+                                          PromptMessage="@s.Prompt" />
+            }
+        </PromptSuggestions>
+        <MessageContentTemplate>
+            @ToHtml(context.Content)
+        </MessageContentTemplate>
         <EmptyMessageAreaTemplate>
             <div class="copilot-empty-area">
-                <h4>Copilot Assistant</h4>
-                <p>Ask me anything about your data. I'm powered by GitHub Copilot.</p>
+                <div class="copilot-logo">&#x2728;</div>
+                <h4>@CopilotChatDefaults.HeaderText</h4>
+                <p>Ask me anything about your data &mdash; orders, invoices, products, employees &amp; more.<br />
+                   Powered by GitHub Copilot SDK.</p>
             </div>
         </EmptyMessageAreaTemplate>
     </DxAIChat>
 </div>
+
+@code {
+    MarkupString ToHtml(string markdown)
+        => new(CopilotChatDefaults.ConvertMarkdownToHtml(markdown));
+
+    void OnChatInitialized(IAIChat chat)
+    {
+        chat.LoadMessages(new[]
+        {
+            new BlazorChatMessage(ChatRole.System, CopilotChatDefaults.SystemPrompt)
+        });
+    }
+}
 
 <style>
     .copilot-chat-container {
@@ -32,10 +61,23 @@
         justify-content: center;
         height: 100%;
         color: #666;
+        text-align: center;
+        padding: 2rem;
+    }
+
+    .copilot-logo {
+        font-size: 3rem;
+        margin-bottom: 0.5rem;
     }
 
     .copilot-empty-area h4 {
         margin-bottom: 8px;
+        font-size: 1.25rem;
+    }
+
+    .copilot-empty-area p {
+        max-width: 480px;
+        line-height: 1.5;
     }
 
     .copilot-chat {

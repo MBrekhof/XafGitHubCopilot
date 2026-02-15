@@ -44,6 +44,10 @@ namespace XafGitHubCopilot.Win
                 configuration.GetSection(CopilotOptions.SectionName).Get<CopilotOptions>() ?? new CopilotOptions());
             var loggerFactory = LoggerFactory.Create(lb => { });
             var copilotService = new CopilotChatService(copilotOptions, loggerFactory.CreateLogger<CopilotChatService>());
+
+            // Set the system message — tools will be wired after Build() when IServiceProvider is available.
+            copilotService.SystemMessage = CopilotChatDefaults.SystemPrompt;
+
             var copilotChatClient = new CopilotChatClient(copilotService);
             AIExtensionsContainerDesktop.Default.RegisterChatClient(copilotChatClient);
             // Register 3rd-party IoC containers (like Autofac, Dryloc, etc.)
@@ -111,6 +115,18 @@ namespace XafGitHubCopilot.Win
 #endif
             });
             var winApplication = builder.Build();
+
+            // Wire Copilot tools now that the DI container + INonSecuredObjectSpaceFactory are available.
+            try
+            {
+                var toolsProvider = new CopilotToolsProvider(winApplication.ServiceProvider);
+                copilotService.Tools = toolsProvider.Tools;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Copilot tools not available: {ex.Message}");
+            }
+
             return winApplication;
         }
 
