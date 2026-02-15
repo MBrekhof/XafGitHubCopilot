@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Markdig;
+using Markdig.Extensions.EmphasisExtras;
 using Ganss.Xss;
 
 namespace XafGitHubCopilot.Module.Services
@@ -91,18 +92,34 @@ When answering:
 
         // ── Markdown → HTML ───────────────────────────────────────────────
 
-        private static readonly HtmlSanitizer Sanitizer = new();
+        private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
+            .UsePipeTables()
+            .UseEmphasisExtras()
+            .UseAutoLinks()
+            .UseTaskLists()
+            .Build();
+
+        private static readonly HtmlSanitizer Sanitizer = CreateSanitizer();
+
+        private static HtmlSanitizer CreateSanitizer()
+        {
+            var sanitizer = new HtmlSanitizer();
+            // Ensure table tags survive sanitization
+            foreach (var tag in new[] { "table", "thead", "tbody", "tr", "th", "td" })
+                sanitizer.AllowedTags.Add(tag);
+            return sanitizer;
+        }
 
         /// <summary>
         /// Converts a Markdown string to sanitized HTML.
-        /// Thread-safe — the sanitizer instance is reentrant.
+        /// Thread-safe — the pipeline and sanitizer instances are reentrant.
         /// </summary>
         public static string ConvertMarkdownToHtml(string markdown)
         {
             if (string.IsNullOrEmpty(markdown))
                 return string.Empty;
 
-            var html = Markdown.ToHtml(markdown);
+            var html = Markdown.ToHtml(markdown, Pipeline);
             return Sanitizer.Sanitize(html);
         }
     }
