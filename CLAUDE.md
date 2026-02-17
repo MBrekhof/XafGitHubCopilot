@@ -2,6 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Git Rules
+
+- **Never push to `upstream` (egarim/XafGitHubCopilot).** Only push to `origin` (MBrekhof/XafGitHubCopilot), which is the fork.
+- Always create feature branches off `master` — do not commit directly to `master`.
+
 ## Project Overview
 
 DevExpress XAF application integrating the GitHub Copilot SDK to provide an in-app AI assistant that queries live business data, creates records conversationally, and works on both Blazor Server and WinForms. Uses a Northwind-style domain (orders, customers, products, employees, invoices) seeded automatically on first run.
