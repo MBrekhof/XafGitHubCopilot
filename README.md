@@ -358,6 +358,17 @@ Or use a GitHub Personal Access Token instead of CLI auth:
 - **Additional tools**: Add new methods to `CopilotToolsProvider` with `[Description]` attributes and register them in `CreateTools()`. For example, you could add an `update_entity` or `delete_entity` tool.
 - **Prompt suggestions**: Edit `CopilotChatDefaults.PromptSuggestions` to provide domain-specific example prompts for your users.
 
+## Roadmap
+
+The next major improvement is **scalable AI schema discovery** — attribute-based filtering and two-tier discovery to handle large data models (100+ entities) efficiently. Instead of sending the entire schema in every system prompt, the AI will discover entity details on demand.
+
+Key features planned:
+- `[AIVisible]` attribute to control which entities and properties the AI can see
+- `[AIDescription]` attribute to provide human-readable context to the AI
+- Lightweight system prompt (entity names only) with a new `describe_entity` tool for on-demand detail loading
+
+See **[TODO.md](TODO.md)** for the full implementation plan.
+
 ## Tech Stack
 
 | Layer | Technology |
