@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using DevExpress.Persistent.Base;
 using DevExpress.Persistent.BaseImpl.EF;
+using XafGitHubCopilot.Module.Attributes;
 
 namespace XafGitHubCopilot.Module.BusinessObjects
 {
@@ -11,6 +12,8 @@ namespace XafGitHubCopilot.Module.BusinessObjects
     [NavigationItem("HR")]
     [ImageName("BO_Employee")]
     [DefaultProperty(nameof(FullName))]
+    [AIVisible]
+    [AIDescription("Staff members with department and territory assignments")]
     public class Employee : BaseObject
     {
         [StringLength(64)]
@@ -30,6 +33,7 @@ namespace XafGitHubCopilot.Module.BusinessObjects
         [StringLength(32)]
         public virtual string Phone { get; set; }
 
+        [AIVisible(false)]
         public virtual Guid? ReportsToId { get; set; }
 
         [ForeignKey(nameof(ReportsToId))]
@@ -41,6 +45,7 @@ namespace XafGitHubCopilot.Module.BusinessObjects
 
         public virtual IList<Order> Orders { get; set; } = new ObservableCollection<Order>();
 
+        [AIVisible(false)]
         public virtual Guid? DepartmentId { get; set; }
 
         [ForeignKey(nameof(DepartmentId))]

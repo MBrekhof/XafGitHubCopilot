@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using DevExpress.Persistent.Base;
 using DevExpress.Persistent.BaseImpl.EF;
+using XafGitHubCopilot.Module.Attributes;
 
 namespace XafGitHubCopilot.Module.BusinessObjects
 {
@@ -11,6 +12,8 @@ namespace XafGitHubCopilot.Module.BusinessObjects
     [NavigationItem("Sales")]
     [ImageName("BO_Order")]
     [DefaultProperty(nameof(OrderDate))]
+    [AIVisible]
+    [AIDescription("Customer orders with shipping and status tracking")]
     public class Order : BaseObject
     {
         public virtual DateTime OrderDate { get; set; }
@@ -23,6 +26,7 @@ namespace XafGitHubCopilot.Module.BusinessObjects
         public virtual decimal Freight { get; set; }
 
         [StringLength(256)]
+        [AIVisible(false)]
         public virtual string ShipAddress { get; set; }
 
         [StringLength(64)]

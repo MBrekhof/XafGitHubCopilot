@@ -37,6 +37,7 @@ namespace XafGitHubCopilot.Module.Services
         private List<AIFunction> CreateTools() =>
         [
             AIFunctionFactory.Create(ListEntities, "list_entities"),
+            AIFunctionFactory.Create(DescribeEntity, "describe_entity"),
             AIFunctionFactory.Create(QueryEntity, "query_entity"),
             AIFunctionFactory.Create(CreateEntity, "create_entity"),
         ];
@@ -228,7 +229,62 @@ namespace XafGitHubCopilot.Module.Services
             }
         }
 
-        [Description("Query records of any entity (table) in the database. Use list_entities first to see available entities and their properties.")]
+        [Description("Get full schema details for a single entity — properties, types, relationships, and enum values. Call this before querying or creating records of an unfamiliar entity.")]
+        private string DescribeEntity(
+            [Description("Entity name to describe (e.g. 'Customer', 'Order'). Use list_entities to see available names.")] string entityName)
+        {
+            _logger.LogInformation("[Tool:describe_entity] Called with entity={Entity}", entityName);
+            try
+            {
+                if (string.IsNullOrWhiteSpace(entityName))
+                    return $"Entity name is required. Available entities: {GetEntityNameList()}";
+
+                var entityInfo = _schemaService.Schema.FindEntity(entityName);
+                if (entityInfo == null)
+                    return $"Entity '{entityName}' not found. Available entities: {GetEntityNameList()}";
+
+                var sb = new StringBuilder();
+                sb.AppendLine($"**{entityInfo.Name}**");
+                if (!string.IsNullOrEmpty(entityInfo.Description))
+                    sb.AppendLine(entityInfo.Description);
+                sb.AppendLine();
+
+                // Properties
+                sb.AppendLine("Properties:");
+                foreach (var prop in entityInfo.Properties)
+                {
+                    var required = prop.IsRequired ? " (required)" : "";
+                    var desc = !string.IsNullOrEmpty(prop.Description) ? $" — {prop.Description}" : "";
+                    sb.AppendLine($"  - {prop.Name}: {prop.TypeName}{required}{desc}");
+
+                    if (prop.EnumValues.Count > 0)
+                        sb.AppendLine($"    Values: {string.Join(", ", prop.EnumValues)}");
+                }
+
+                // Relationships
+                if (entityInfo.Relationships.Count > 0)
+                {
+                    sb.AppendLine();
+                    sb.AppendLine("Relationships:");
+                    foreach (var rel in entityInfo.Relationships)
+                    {
+                        var kind = rel.IsCollection ? "has many" : "belongs to";
+                        sb.AppendLine($"  - {rel.PropertyName}: {kind} {rel.TargetEntity}");
+                    }
+                }
+
+                var result = sb.ToString();
+                _logger.LogInformation("[Tool:describe_entity] Returning {Len} chars for {Entity}", result.Length, entityName);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[Tool:describe_entity] Error");
+                return $"Error describing {entityName}: {ex.Message}";
+            }
+        }
+
+        [Description("Query records of any entity (table) in the database. Call describe_entity first if you are unsure about property names or types.")]
         private string QueryEntity(
             [Description("Entity name to query (e.g. 'Customer', 'Order', 'Product'). Use list_entities to see available names.")] string entityName,
             [Description("Optional filter as semicolon-separated 'PropertyName=value' pairs. Example: 'Status=New;Country=USA'. Omit for no filter.")] string filter = "",
@@ -335,7 +391,7 @@ namespace XafGitHubCopilot.Module.Services
             }
         }
 
-        [Description("Create a new record of any entity in the database. Use list_entities first to see available entities, their properties, and relationships.")]
+        [Description("Create a new record of any entity in the database. Call describe_entity first to see required fields, property types, and relationships.")]
         private string CreateEntity(
             [Description("Entity name to create (e.g. 'Customer', 'Order', 'Product'). Use list_entities to see available names.")] string entityName,
             [Description("Semicolon-separated 'PropertyName=value' pairs. For reference properties (relationships), provide a search term to match by name. Example: 'CompanyName=Acme Corp;Country=USA' or 'Customer=Acme;Status=New'.")] string properties)

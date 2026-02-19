@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using DevExpress.ExpressApp;
 using DevExpress.ExpressApp.DC;
+using XafGitHubCopilot.Module.Attributes;
 
 namespace XafGitHubCopilot.Module.Services
 {
@@ -18,21 +20,11 @@ namespace XafGitHubCopilot.Module.Services
         private SchemaInfo _cached;
 
         /// <summary>
-        /// XAF / EF Core framework types that should be excluded from discovery.
+        /// Whether the model uses opt-in mode (at least one entity has <see cref="AIVisibleAttribute"/>).
+        /// When true, only entities decorated with <c>[AIVisible]</c> are discovered.
+        /// When false, all persistent business-object entities are discovered (backward compatibility).
         /// </summary>
-        private static readonly HashSet<string> ExcludedTypeNames = new(StringComparer.Ordinal)
-        {
-            "ModelDifference", "ModelDifferenceAspect",
-            "PermissionPolicyRole", "PermissionPolicyTypePermissionObject",
-            "PermissionPolicyNavigationPermissionObject", "PermissionPolicyObjectPermissionsObject",
-            "PermissionPolicyMemberPermissionsObject", "PermissionPolicyActionPermissionObject",
-            "PermissionPolicyUser",
-            "ApplicationUser", "ApplicationUserLoginInfo",
-            "FileData", "FileAttachment",
-            "ReportDataV2",
-            "BaseObject",
-            "Event", "Resource",
-        };
+        private bool? _useOptInMode;
 
         public SchemaDiscoveryService(ITypesInfo typesInfo)
         {
@@ -58,49 +50,35 @@ namespace XafGitHubCopilot.Module.Services
         /// Generates a Markdown system prompt describing all discovered entities,
         /// their properties, relationships, and enum values.
         /// </summary>
+        /// <summary>
+        /// Generates a lightweight system prompt listing only entity names and descriptions.
+        /// Full property details are available on demand via the <c>describe_entity</c> tool.
+        /// </summary>
         public string GenerateSystemPrompt()
         {
             var schema = Schema;
             var sb = new StringBuilder();
 
             sb.AppendLine("You are a helpful business assistant for an order management application.");
-            sb.AppendLine("The database contains these entities:");
             sb.AppendLine();
+            sb.AppendLine("Available entities:");
 
             foreach (var entity in schema.Entities)
             {
-                // Entity header with scalar properties
-                var props = string.Join(", ", entity.Properties.Select(FormatProperty));
-                sb.AppendLine($"- **{entity.Name}** ({props})");
-
-                // Enum values
-                foreach (var p in entity.Properties.Where(p => p.EnumValues.Count > 0))
-                    sb.AppendLine($"  - {p.Name} values: {string.Join(", ", p.EnumValues)}");
-
-                // Relationships
-                foreach (var rel in entity.Relationships)
-                {
-                    var arrow = rel.IsCollection ? "has many" : "belongs to";
-                    sb.AppendLine($"  - {arrow} {rel.TargetEntity} (via {rel.PropertyName})");
-                }
+                if (!string.IsNullOrEmpty(entity.Description))
+                    sb.AppendLine($"- **{entity.Name}** — {entity.Description}");
+                else
+                    sb.AppendLine($"- **{entity.Name}**");
             }
 
             sb.AppendLine();
             sb.AppendLine("When answering:");
+            sb.AppendLine("- Use `describe_entity` to see an entity's properties and relationships before querying or creating records.");
+            sb.AppendLine("- Use `query_entity` to fetch data and `create_entity` to create records.");
             sb.AppendLine("- Use Markdown formatting for readability (tables, bold, lists).");
-            sb.AppendLine("- When asked about data, use the available tools to query real data.");
-            sb.AppendLine("- When asked to create records, describe the steps and confirm before proceeding.");
-            sb.AppendLine("- Use `list_entities` to discover available entities and `query_entity` to fetch data.");
             sb.AppendLine("- Be concise but thorough.");
 
             return sb.ToString();
-        }
-
-        private static string FormatProperty(EntityPropertyInfo p)
-        {
-            if (p.EnumValues.Count > 0)
-                return p.Name;
-            return p.Name;
         }
 
         private SchemaInfo Discover()
@@ -108,16 +86,38 @@ namespace XafGitHubCopilot.Module.Services
             var entities = new List<EntityInfo>();
             var businessObjectNamespace = "XafGitHubCopilot.Module.BusinessObjects";
 
+            // Determine if any entity in the model uses [AIVisible] (opt-in mode).
+            if (_useOptInMode == null)
+            {
+                _useOptInMode = _typesInfo.PersistentTypes
+                    .Any(t => t.Type?.GetCustomAttribute<AIVisibleAttribute>() != null);
+            }
+
             foreach (var typeInfo in _typesInfo.PersistentTypes)
             {
                 if (typeInfo.Type == null) continue;
-                if (!typeInfo.Type.Namespace?.StartsWith(businessObjectNamespace, StringComparison.Ordinal) == true) continue;
-                if (ExcludedTypeNames.Contains(typeInfo.Name)) continue;
                 if (typeInfo.IsAbstract) continue;
+
+                var aiVisible = typeInfo.Type.GetCustomAttribute<AIVisibleAttribute>();
+
+                if (_useOptInMode.Value)
+                {
+                    // Opt-in mode: only include entities with [AIVisible] (and not explicitly false)
+                    if (aiVisible == null || !aiVisible.IsVisible) continue;
+                }
+                else
+                {
+                    // Backward-compatible mode: include all entities from the business objects namespace
+                    if (!typeInfo.Type.Namespace?.StartsWith(businessObjectNamespace, StringComparison.Ordinal) == true)
+                        continue;
+                }
+
+                var aiDescription = typeInfo.Type.GetCustomAttribute<AIDescriptionAttribute>();
 
                 var entityInfo = new EntityInfo
                 {
                     Name = typeInfo.Name,
+                    Description = aiDescription?.Description,
                     ClrType = typeInfo.Type,
                 };
 
@@ -129,6 +129,15 @@ namespace XafGitHubCopilot.Module.Services
                     // Skip foreign key ID properties (e.g., CustomerId, EmployeeId)
                     if (member.Name.EndsWith("Id", StringComparison.Ordinal) && member.MemberType == typeof(Guid?))
                         continue;
+
+                    // Check [AIVisible(false)] on the property to exclude it
+                    var memberClrProp = typeInfo.Type.GetProperty(member.Name);
+                    var memberAiVisible = memberClrProp?.GetCustomAttribute<AIVisibleAttribute>();
+                    if (memberAiVisible is { IsVisible: false })
+                        continue;
+
+                    // Read [AIDescription] on the property
+                    var memberAiDescription = memberClrProp?.GetCustomAttribute<AIDescriptionAttribute>();
 
                     // Navigation / collection property
                     if (member.IsList)
@@ -164,6 +173,7 @@ namespace XafGitHubCopilot.Module.Services
                     var propInfo = new EntityPropertyInfo
                     {
                         Name = member.Name,
+                        Description = memberAiDescription?.Description,
                         TypeName = GetFriendlyTypeName(member.MemberType),
                         ClrType = member.MemberType,
                         IsRequired = !IsNullableType(member.MemberType),
@@ -224,6 +234,7 @@ namespace XafGitHubCopilot.Module.Services
     public sealed class EntityInfo
     {
         public string Name { get; set; }
+        public string Description { get; set; }
         public Type ClrType { get; set; }
         public List<EntityPropertyInfo> Properties { get; set; } = new();
         public List<RelationshipInfo> Relationships { get; set; } = new();
@@ -232,6 +243,7 @@ namespace XafGitHubCopilot.Module.Services
     public sealed class EntityPropertyInfo
     {
         public string Name { get; set; }
+        public string Description { get; set; }
         public string TypeName { get; set; }
         public Type ClrType { get; set; }
         public bool IsRequired { get; set; }

@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using DevExpress.Persistent.Base;
 using DevExpress.Persistent.BaseImpl.EF;
+using XafGitHubCopilot.Module.Attributes;
 
 namespace XafGitHubCopilot.Module.BusinessObjects
 {
@@ -11,6 +12,8 @@ namespace XafGitHubCopilot.Module.BusinessObjects
     [NavigationItem("HR")]
     [ImageName("BO_Department")]
     [DefaultProperty(nameof(Name))]
+    [AIVisible]
+    [AIDescription("Company departments with budget tracking and employee assignments")]
     public class Department : BaseObject
     {
         [StringLength(128)]
@@ -23,6 +26,7 @@ namespace XafGitHubCopilot.Module.BusinessObjects
         public virtual string Location { get; set; }
 
         [Column(TypeName = "decimal(18,2)")]
+        [AIDescription("Annual operating budget in USD")]
         public virtual decimal Budget { get; set; }
 
         public virtual bool IsActive { get; set; } = true;

@@ -12,33 +12,33 @@
 
 Create generic attributes (not Copilot-specific, so they work with any AI integration) that developers place on entities and properties to control AI discoverability.
 
-- [ ] **Create `AIVisibleAttribute`** — applies to classes and properties
+- [x] **Create `AIVisibleAttribute`** — applies to classes and properties
   - `[AIVisible]` on a class → include this entity in AI discovery (opt-in at entity level)
   - `[AIVisible]` on a property → include this property (when entity-level filtering is active)
   - `[AIVisible(false)]` on a property → explicitly exclude a property even if the entity is visible
   - If no entity in the model has `[AIVisible]`, fall back to current behavior (discover all entities) for backward compatibility
   - File: `Module/Attributes/AIVisibleAttribute.cs`
 
-- [ ] **Create `AIDescriptionAttribute`** — applies to classes and properties
+- [x] **Create `AIDescriptionAttribute`** — applies to classes and properties
   - Provides a human-readable description that the AI sees instead of just the property/entity name
   - `[AIDescription("Company departments with budget tracking and employee assignments")]` on a class
   - `[AIDescription("Annual operating budget in USD")]` on a property
   - When present, the description is included in both the system prompt and tool output
   - File: `Module/Attributes/AIDescriptionAttribute.cs`
 
-- [ ] **Update `SchemaDiscoveryService.Discover()`** to respect the new attributes
+- [x] **Update `SchemaDiscoveryService.Discover()`** to respect the new attributes
   - If any entity has `[AIVisible]`, switch to opt-in mode: only discover entities with `[AIVisible]`
   - Filter out properties with `[AIVisible(false)]`
   - Read `[AIDescription]` values and include them in `EntityInfo` / `EntityPropertyInfo`
   - Remove the hardcoded `ExcludedTypeNames` set — replace with `[AIVisible(false)]` or simply omit `[AIVisible]` on framework types
 
-- [ ] **Update `SchemaInfo` model classes** to carry description metadata
+- [x] **Update `SchemaInfo` model classes** to carry description metadata
   - Add `Description` property to `EntityInfo`
   - Add `Description` property to `EntityPropertyInfo`
 
-- [ ] **Decorate existing business objects** with the new attributes as a working example
-  - Add `[AIVisible]` and `[AIDescription]` to a few entities (e.g., Department, Employee, Order)
-  - Add `[AIVisible(false)]` to a few internal properties to demonstrate exclusion
+- [x] **Decorate existing business objects** with the new attributes as a working example
+  - Add `[AIVisible]` and `[AIDescription]` to Department, Employee, Order, Customer
+  - Add `[AIVisible(false)]` to internal properties (ReportsToId, DepartmentId on Employee; ShipAddress on Order)
 
 ---
 
@@ -46,7 +46,7 @@ Create generic attributes (not Copilot-specific, so they work with any AI integr
 
 Restructure the system prompt to be lightweight, and move detailed schema information into a tool that the AI calls only when needed.
 
-- [ ] **Slim down `GenerateSystemPrompt()`**
+- [x] **Slim down `GenerateSystemPrompt()`**
   - Only include entity names and their `[AIDescription]` text (one line per entity)
   - Do NOT include property lists, relationships, or enum values in the system prompt
   - Example output:
@@ -56,13 +56,13 @@ Restructure the system prompt to be lightweight, and move detailed schema inform
     Order (customer orders with status tracking), ...
     ```
 
-- [ ] **Add `describe_entity` tool to `CopilotToolsProvider`**
+- [x] **Add `describe_entity` tool to `CopilotToolsProvider`**
   - Takes an entity name as parameter
   - Returns full property details, types, enum values, and relationships for that single entity
   - The AI calls this when it needs to understand an entity's structure before querying or creating
   - Register in `CreateTools()` alongside the existing three tools
 
-- [ ] **Update tool `[Description]` attributes** to guide the AI toward the new flow
+- [x] **Update tool `[Description]` attributes** to guide the AI toward the new flow
   - `query_entity` description: mention calling `describe_entity` first if unsure about property names
   - `create_entity` description: mention calling `describe_entity` first to see required fields
 
