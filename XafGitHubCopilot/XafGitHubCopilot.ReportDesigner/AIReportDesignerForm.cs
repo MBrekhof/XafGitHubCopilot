@@ -158,9 +158,13 @@ public sealed class AIReportDesignerForm : XRDesignRibbonForm
             var existing = context.Set<DevExpress.Persistent.BaseImpl.EF.ReportDataV2>()
                 .FirstOrDefault(r => r.DisplayName == reportName);
 
+            // Extract metadata that XAF expects on ReportDataV2.
+            var dataTypeName = ExtractDataTypeName(report);
+
             if (existing != null)
             {
                 existing.Content = content;
+                existing.DataTypeName = dataTypeName;
             }
             else
             {
@@ -168,6 +172,8 @@ public sealed class AIReportDesignerForm : XRDesignRibbonForm
                 {
                     DisplayName = reportName,
                     Content = content,
+                    DataTypeName = dataTypeName,
+                    IsInplaceReport = false,
                 };
                 context.Set<DevExpress.Persistent.BaseImpl.EF.ReportDataV2>().Add(reportData);
             }
@@ -205,6 +211,33 @@ public sealed class AIReportDesignerForm : XRDesignRibbonForm
         dialog.AcceptButton = okButton;
 
         return dialog.ShowDialog() == DialogResult.OK ? textBox.Text : null;
+    }
+
+    /// <summary>
+    /// Tries to extract a data type name from the report's data source
+    /// so XAF can associate the report with a business object type.
+    /// Returns the SQL data source's first query name or empty string.
+    /// </summary>
+    private static string ExtractDataTypeName(XtraReport report)
+    {
+        // Check for SqlDataSource — the AI wizard typically creates these.
+        if (report.DataSource is DevExpress.DataAccess.Sql.SqlDataSource sqlDs)
+        {
+            var firstQuery = sqlDs.Queries.OfType<DevExpress.DataAccess.Sql.SelectQuery>().FirstOrDefault();
+            if (firstQuery != null)
+                return firstQuery.Name;
+
+            // Fall back to any query name.
+            var anyQuery = sqlDs.Queries.Cast<DevExpress.DataAccess.Sql.SqlQuery>().FirstOrDefault();
+            if (anyQuery != null)
+                return anyQuery.Name;
+        }
+
+        // Check DataMember as fallback.
+        if (!string.IsNullOrWhiteSpace(report.DataMember))
+            return report.DataMember;
+
+        return "";
     }
 
     private DbContext CreateDbContext()
