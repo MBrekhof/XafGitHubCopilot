@@ -24,7 +24,7 @@
     <PackageReference Include="DevExpress.ExpressApp.ReportsV2.Blazor" Version="25.2.3" />
     <PackageReference Include="DevExpress.ExpressApp.Validation.Blazor" Version="25.2.3" />
     <PackageReference Include="DevExpress.AIIntegration.Blazor.Chat" Version="25.2.3" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.*" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.*" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\XafGitHubCopilot.Module\XafGitHubCopilot.Module.csproj" />
