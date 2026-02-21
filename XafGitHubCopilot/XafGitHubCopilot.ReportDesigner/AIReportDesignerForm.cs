@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.IO;
 using System.Text;
+using DevExpress.AIIntegration.Reporting;
 using DevExpress.AIIntegration.WinForms.Reporting;
 using DevExpress.Utils.Behaviors;
 using DevExpress.XtraBars;
@@ -21,10 +22,12 @@ public sealed class AIReportDesignerForm : XRDesignRibbonForm
     private readonly IContainer _components;
     private readonly BehaviorManager _behaviorManager;
     private readonly string _connectionString;
+    private readonly string _schemaPrompt;
 
-    public AIReportDesignerForm(string connectionString)
+    public AIReportDesignerForm(string connectionString, string schemaPrompt)
     {
         _connectionString = connectionString;
+        _schemaPrompt = schemaPrompt;
         _components = new Container();
         _behaviorManager = new BehaviorManager(_components);
 
@@ -45,6 +48,9 @@ public sealed class AIReportDesignerForm : XRDesignRibbonForm
             {
                 behavior.Properties.RetryAttemptCount = 3;
                 behavior.Properties.FixLayoutErrors = true;
+
+                // Build schema-aware predefined prompts so the AI knows the actual database structure.
+                behavior.Properties.PredefinedPrompts = BuildPredefinedPrompts();
             });
 
             System.Diagnostics.Debug.WriteLine("[AIReportDesignerForm] ReportPromptToReportBehavior attached via Attach<T>");
@@ -76,6 +82,70 @@ public sealed class AIReportDesignerForm : XRDesignRibbonForm
         group.ItemLinks.Add(saveItem);
         page.Groups.Add(group);
         ribbon.Pages.Add(page);
+    }
+
+    private AIReportPromptCollection BuildPredefinedPrompts()
+    {
+        var collection = AIReportPromptCollection.GetDefaultReportPrompts();
+
+        // Embed the full schema context so the AI uses real table/column names.
+        collection.Add(new AIReportPrompt
+        {
+            Title = "Order Summary Report",
+            Text = $"""
+                {_schemaPrompt}
+
+                Create a report showing all orders with:
+                - Group by Customer (CompanyName)
+                - Columns: OrderDate, ShipName, ShipCity, Freight
+                - Sort by OrderDate descending
+                - Summary: total Freight per customer and grand total
+                - Use the connection named "XafGitHubCopilot"
+                """,
+        });
+
+        collection.Add(new AIReportPrompt
+        {
+            Title = "Product Catalog Report",
+            Text = $"""
+                {_schemaPrompt}
+
+                Create a product catalog report with:
+                - Group by Category (CategoryName)
+                - Columns: ProductName, QuantityPerUnit, UnitPrice, UnitsInStock
+                - Sort by ProductName within each category
+                - Summary: count of products per category, average UnitPrice
+                - Use the connection named "XafGitHubCopilot"
+                """,
+        });
+
+        collection.Add(new AIReportPrompt
+        {
+            Title = "Invoice Report",
+            Text = $"""
+                {_schemaPrompt}
+
+                Create an invoice report with:
+                - Group by Customer (CompanyName)
+                - Columns: InvoiceDate, Amount, ShipName, ShipCity
+                - Sort by InvoiceDate descending
+                - Summary: total Amount per customer and grand total
+                - Use the connection named "XafGitHubCopilot"
+                """,
+        });
+
+        collection.Add(new AIReportPrompt
+        {
+            Title = "Custom Report (with schema context)",
+            Text = $"""
+                {_schemaPrompt}
+
+                Use the connection named "XafGitHubCopilot".
+                Create a report for: [describe your report here]
+                """,
+        });
+
+        return collection;
     }
 
     private void OnLoadFromDatabase(object? sender, ItemClickEventArgs e)

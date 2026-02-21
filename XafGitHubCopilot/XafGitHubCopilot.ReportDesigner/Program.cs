@@ -66,6 +66,7 @@ static class Program
                 ["XafGitHubCopilot"] = xpoConnectionString
             });
 
-        Application.Run(new AIReportDesignerForm(connectionString));
+        var schemaPrompt = schemaService.GenerateSystemPrompt();
+        Application.Run(new AIReportDesignerForm(connectionString, schemaPrompt));
     }
 }
