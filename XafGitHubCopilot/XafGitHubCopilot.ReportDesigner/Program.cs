@@ -19,6 +19,7 @@ static class Program
         var configuration = new ConfigurationBuilder()
             .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
+            .AddJsonFile("appsettings.Development.json", optional: true, reloadOnChange: false)
             .Build();
 
         // Register OpenAI client for AI report behaviors.
@@ -28,7 +29,7 @@ static class Program
         if (string.IsNullOrWhiteSpace(apiKey))
         {
             MessageBox.Show(
-                "OpenAI API key is not configured.\n\nSet the \"OpenAI:ApiKey\" value in appsettings.json.",
+                "OpenAI API key is not configured.\n\nSet the \"OpenAI:ApiKey\" value in appsettings.Development.json.",
                 "Configuration Error",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Error);
