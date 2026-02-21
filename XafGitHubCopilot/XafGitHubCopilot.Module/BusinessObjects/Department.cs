@@ -14,6 +14,7 @@ namespace XafGitHubCopilot.Module.BusinessObjects
     [DefaultProperty(nameof(Name))]
     [AIVisible]
     [AIDescription("Company departments with budget tracking and employee assignments")]
+    [Table("Departments")]
     public class Department : BaseObject
     {
         [StringLength(128)]

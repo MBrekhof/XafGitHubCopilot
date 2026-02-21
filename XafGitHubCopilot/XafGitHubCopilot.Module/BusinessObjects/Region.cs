@@ -1,8 +1,10 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using DevExpress.Persistent.Base;
 using DevExpress.Persistent.BaseImpl.EF;
+using XafGitHubCopilot.Module.Attributes;
 
 namespace XafGitHubCopilot.Module.BusinessObjects
 {
@@ -10,6 +12,9 @@ namespace XafGitHubCopilot.Module.BusinessObjects
     [NavigationItem("Geography")]
     [ImageName("BO_Country")]
     [DefaultProperty(nameof(Name))]
+    [AIVisible]
+    [AIDescription("Geographic regions containing territories")]
+    [Table("Regions")]
     public class Region : BaseObject
     {
         [StringLength(100)]

@@ -14,6 +14,7 @@ namespace XafGitHubCopilot.Module.BusinessObjects
     [DefaultProperty(nameof(OrderDate))]
     [AIVisible]
     [AIDescription("Customer orders with shipping and status tracking")]
+    [Table("Orders")]
     public class Order : BaseObject
     {
         public virtual DateTime OrderDate { get; set; }

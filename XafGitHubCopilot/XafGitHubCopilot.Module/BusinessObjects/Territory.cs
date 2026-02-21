@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using DevExpress.Persistent.Base;
 using DevExpress.Persistent.BaseImpl.EF;
+using XafGitHubCopilot.Module.Attributes;
 
 namespace XafGitHubCopilot.Module.BusinessObjects
 {
@@ -11,6 +12,9 @@ namespace XafGitHubCopilot.Module.BusinessObjects
     [NavigationItem("Geography")]
     [ImageName("BO_Position")]
     [DefaultProperty(nameof(Name))]
+    [AIVisible]
+    [AIDescription("Sales territories within regions, assigned to employees")]
+    [Table("Territories")]
     public class Territory : BaseObject
     {
         [StringLength(100)]

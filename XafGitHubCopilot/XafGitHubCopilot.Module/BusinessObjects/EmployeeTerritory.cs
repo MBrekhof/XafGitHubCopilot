@@ -1,12 +1,16 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using DevExpress.Persistent.Base;
 using DevExpress.Persistent.BaseImpl.EF;
+using XafGitHubCopilot.Module.Attributes;
 
 namespace XafGitHubCopilot.Module.BusinessObjects
 {
     [DefaultClassOptions]
     [NavigationItem("HR")]
     [ImageName("BO_Department")]
+    [AIVisible]
+    [AIDescription("Many-to-many association between employees and their assigned territories")]
+    [Table("EmployeeTerritories")]
     public class EmployeeTerritory : BaseObject
     {
         public virtual Guid EmployeeId { get; set; }

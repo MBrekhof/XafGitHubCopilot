@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using DevExpress.Persistent.Base;
 using DevExpress.Persistent.BaseImpl.EF;
 using XafGitHubCopilot.Module.Attributes;
@@ -13,6 +14,7 @@ namespace XafGitHubCopilot.Module.BusinessObjects
     [DefaultProperty(nameof(CompanyName))]
     [AIVisible]
     [AIDescription("Customers with contact information and order history")]
+    [Table("Customers")]
     public class Customer : BaseObject
     {
         [StringLength(128)]

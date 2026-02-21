@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using DevExpress.Persistent.Base;
 using DevExpress.Persistent.BaseImpl.EF;
+using XafGitHubCopilot.Module.Attributes;
 
 namespace XafGitHubCopilot.Module.BusinessObjects
 {
@@ -11,6 +12,9 @@ namespace XafGitHubCopilot.Module.BusinessObjects
     [NavigationItem("Sales")]
     [ImageName("BO_Invoice")]
     [DefaultProperty(nameof(InvoiceNumber))]
+    [AIVisible]
+    [AIDescription("Invoices for billing with status tracking and order associations")]
+    [Table("Invoices")]
     public class Invoice : BaseObject
     {
         [StringLength(32)]
