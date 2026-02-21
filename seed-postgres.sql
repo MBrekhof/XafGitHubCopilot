@@ -154,6 +154,13 @@ CREATE TABLE "ReportDataV2" (
     "ID" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "DisplayName" VARCHAR(256),
     "Content" BYTEA,
+    "DataTypeName" VARCHAR(512),
+    "DataTypeCaption" VARCHAR(512),
+    "IsInplaceReport" BOOLEAN NOT NULL DEFAULT false,
+    "IsPredefined" BOOLEAN NOT NULL DEFAULT false,
+    "ParametersObjectTypeName" VARCHAR(512),
+    "PredefinedReportTypeName" VARCHAR(512),
+    "GCRecord" INTEGER,
     "OptimisticLockField" INTEGER DEFAULT 0
 );
 
