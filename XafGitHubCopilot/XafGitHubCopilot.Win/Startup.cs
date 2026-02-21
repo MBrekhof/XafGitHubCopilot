@@ -1,4 +1,5 @@
 ﻿using System.Configuration;
+using DevExpress.DataAccess;
 using DevExpress.EntityFrameworkCore.Security;
 using DevExpress.ExpressApp;
 using DevExpress.ExpressApp.ApplicationBuilder;
@@ -31,6 +32,16 @@ namespace XafGitHubCopilot.Win
                 .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
                 .AddJsonFile("appsettings.Development.json", optional: true, reloadOnChange: true)
                 .Build();
+
+            // Register XPO-format connection string so reports with SQL data sources
+            // can resolve the "XafGitHubCopilot" connection at preview/print time.
+            var xpoConnectionString = configuration["Database:XpoConnectionString"]
+                ?? "XpoProvider=Postgres;Server=localhost;Port=5432;User ID=xaf;Password=xaf123;Database=xafgithubcopilot;Encoding=UNICODE";
+            DefaultConnectionStringProvider.AssignConnectionStrings(
+                new Dictionary<string, string>
+                {
+                    ["XafGitHubCopilot"] = xpoConnectionString
+                });
 
             var builder = WinApplication.CreateBuilder();
             // Register logging (required by CopilotChatService).
