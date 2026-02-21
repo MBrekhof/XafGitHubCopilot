@@ -242,10 +242,36 @@ public sealed class AIReportDesignerForm : XRDesignRibbonForm
 
     private DbContext CreateDbContext()
     {
-        var options = new DbContextOptionsBuilder<XafGitHubCopilot.Module.BusinessObjects.XafGitHubCopilotEFCoreDbContext>()
+        var options = new DbContextOptionsBuilder<ReportDbContext>()
             .UseNpgsql(_connectionString)
             .Options;
-        return new XafGitHubCopilot.Module.BusinessObjects.XafGitHubCopilotEFCoreDbContext(options);
+        return new ReportDbContext(options);
+    }
+
+    /// <summary>
+    /// Lightweight DbContext that only maps <see cref="DevExpress.Persistent.BaseImpl.EF.ReportDataV2"/>
+    /// to avoid XAF's change-tracking requirements on entities like FileData.
+    /// </summary>
+    private sealed class ReportDbContext : DbContext
+    {
+        public ReportDbContext(DbContextOptions<ReportDbContext> options) : base(options) { }
+
+        public DbSet<DevExpress.Persistent.BaseImpl.EF.ReportDataV2> ReportDataV2 => Set<DevExpress.Persistent.BaseImpl.EF.ReportDataV2>();
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            // Map only ReportDataV2 and its base type (BaseObject provides ID).
+            modelBuilder.Entity<DevExpress.Persistent.BaseImpl.EF.ReportDataV2>(entity =>
+            {
+                entity.ToTable("ReportDataV2");
+                entity.HasKey(e => e.ID);
+            });
+
+            // Ignore all other XAF base types that EF might try to discover.
+            modelBuilder.Ignore<DevExpress.Persistent.BaseImpl.EF.BaseObject>();
+        }
     }
 
     protected override void Dispose(bool disposing)
