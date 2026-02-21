@@ -210,7 +210,7 @@ public sealed class AIReportDesignerForm : XRDesignRibbonForm
     private DbContext CreateDbContext()
     {
         var options = new DbContextOptionsBuilder<XafGitHubCopilot.Module.BusinessObjects.XafGitHubCopilotEFCoreDbContext>()
-            .UseSqlite(_connectionString)
+            .UseNpgsql(_connectionString)
             .Options;
         return new XafGitHubCopilot.Module.BusinessObjects.XafGitHubCopilotEFCoreDbContext(options);
     }

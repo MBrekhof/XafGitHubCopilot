@@ -1,5 +1,6 @@
 using System.Reflection;
 using DevExpress.AIIntegration;
+using DevExpress.DataAccess;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using XafGitHubCopilot.Module.Services;
@@ -51,8 +52,18 @@ static class Program
             System.Diagnostics.Debug.WriteLine($"  - {entity.Name} (table: {entity.TableName}) — {entity.Description}");
         }
 
-        // Resolve database path — look for the XAF app's database relative to the output directory.
-        var connectionString = configuration["Database:ConnectionString"] ?? "Data Source=XafGitHubCopilot.db";
+        // Resolve database connection string from config.
+        var connectionString = configuration["Database:ConnectionString"]
+            ?? "Host=localhost;Port=5432;Database=xafgithubcopilot;Username=xaf;Password=xaf123";
+
+        // Register the connection with XpoProvider prefix so the Report Data Source Wizard can find it.
+        var xpoConnectionString = configuration["Database:XpoConnectionString"]
+            ?? "XpoProvider=Postgres;Server=localhost;Port=5432;User ID=xaf;Password=xaf123;Database=xafgithubcopilot;Encoding=UNICODE";
+        DefaultConnectionStringProvider.AssignConnectionStrings(
+            new Dictionary<string, string>
+            {
+                ["XafGitHubCopilot"] = xpoConnectionString
+            });
 
         Application.Run(new AIReportDesignerForm(connectionString));
     }

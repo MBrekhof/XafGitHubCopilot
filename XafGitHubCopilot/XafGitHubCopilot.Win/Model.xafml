@@ -1,4 +1,10 @@
-﻿<Application Logo="ExpressAppLogo">
-    <Options UIType="TabbedMDI" FormStyle="Ribbon" />
-    <NavigationItems NavigationStyle="Accordion" DefaultChildItemsDisplayStyle="List"/>
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Application Logo="ExpressAppLogo">
+  <NavigationItems NavigationStyle="Accordion" DefaultChildItemsDisplayStyle="List" />
+  <Options UIType="SingleWindowSDI" FormStyle="Standard" />
+  <SchemaModules>
+    <SchemaModule Name="CloneObjectModule" Version="25.2.3.0" IsNewNode="True" />
+    <SchemaModule Name="SystemModule" Version="25.2.3.0" IsNewNode="True" />
+    <SchemaModule Name="SystemWindowsFormsModule" Version="25.2.3.0" IsNewNode="True" />
+  </SchemaModules>
 </Application>

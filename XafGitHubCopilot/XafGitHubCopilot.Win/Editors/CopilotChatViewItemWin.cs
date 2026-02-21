@@ -37,7 +37,8 @@ namespace XafGitHubCopilot.Win.Editors
                 ShowHeader = DefaultBoolean.True,
                 HeaderText = CopilotChatDefaults.HeaderText,
                 EmptyStateText = CopilotChatDefaults.EmptyStateText,
-                ContentFormat = ResponseContentFormat.Markdown
+                ContentFormat = ResponseContentFormat.Markdown,
+                ChatClientServiceKey = "copilot"
             };
 
             // Markdown rendering via shared helper
