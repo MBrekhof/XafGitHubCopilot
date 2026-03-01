@@ -104,9 +104,10 @@ namespace XafGitHubCopilot.Module.Services
             string lastError = null;
             var idleTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
+            _logger.LogInformation("[Session] Created (model={Model}, tools={ToolCount})", _options.Model, Tools?.Count ?? 0);
+
             var subscription = session.On(evt =>
             {
-                _logger.LogInformation("[Event] {EventType}", evt.GetType().Name);
                 switch (evt)
                 {
                     case AssistantMessageDeltaEvent delta:
@@ -114,6 +115,12 @@ namespace XafGitHubCopilot.Module.Services
                         break;
                     case AssistantMessageEvent message:
                         _logger.LogInformation("[Message] Content length: {Len}", message.Data?.Content?.Length ?? 0);
+                        break;
+                    case ToolExecutionStartEvent:
+                        _logger.LogInformation("[ToolExec] Tool execution STARTED");
+                        break;
+                    case ToolExecutionCompleteEvent:
+                        _logger.LogInformation("[ToolExec] Tool execution COMPLETED");
                         break;
                     case SessionErrorEvent error:
                         lastError = error.Data?.Message ?? "Unknown session error";

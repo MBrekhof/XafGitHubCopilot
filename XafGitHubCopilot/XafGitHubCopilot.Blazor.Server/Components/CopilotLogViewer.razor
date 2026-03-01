@@ -1,0 +1,86 @@
+@namespace XafGitHubCopilot.Blazor.Server.Components
+
+@using Microsoft.Extensions.Logging
+@using XafGitHubCopilot.Module.Services
+@inject CopilotLogStore LogStore
+@inject IJSRuntime JS
+@implements IDisposable
+
+<div class="copilot-log-viewer">
+    <div class="copilot-log-header">
+        <span class="copilot-log-title">AI Log</span>
+        <span class="copilot-log-count">@_entries.Count entries</span>
+        <button class="copilot-log-clear-btn" @onclick="ClearLog" title="Clear log">Clear</button>
+    </div>
+    <div class="copilot-log-entries" id="copilotLogEntries">
+        @foreach (var entry in _entries)
+        {
+            <div class="copilot-log-entry copilot-log-@entry.Level.ToString().ToLowerInvariant()">
+                <span class="copilot-log-time">@entry.Timestamp.ToString("HH:mm:ss")</span>
+                <span class="copilot-log-level">@FormatLevel(entry.Level)</span>
+                <span class="copilot-log-category">@entry.Category</span>
+                <span class="copilot-log-message" title="@entry.Message">@entry.Message</span>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private List<CopilotLogEntry> _entries = new();
+
+    protected override void OnInitialized()
+    {
+        _entries = LogStore.GetEntries();
+        LogStore.OnNewEntry += OnNewEntry;
+    }
+
+    private async void OnNewEntry(CopilotLogEntry entry)
+    {
+        try
+        {
+            await InvokeAsync(() =>
+            {
+                _entries.Add(entry);
+                // Keep in sync with store's max
+                while (_entries.Count > 500)
+                    _entries.RemoveAt(0);
+                StateHasChanged();
+            });
+
+            // Auto-scroll after render
+            await Task.Yield();
+            try
+            {
+                await JS.InvokeVoidAsync("copilotLogAutoScroll");
+            }
+            catch
+            {
+                // JS interop may fail if circuit is disconnected
+            }
+        }
+        catch
+        {
+            // Component may be disposed
+        }
+    }
+
+    private void ClearLog()
+    {
+        LogStore.Clear();
+        _entries.Clear();
+    }
+
+    private static string FormatLevel(LogLevel level) => level switch
+    {
+        LogLevel.Information => "INF",
+        LogLevel.Warning => "WRN",
+        LogLevel.Error => "ERR",
+        LogLevel.Critical => "CRT",
+        _ => level.ToString()[..3].ToUpperInvariant()
+    };
+
+    public void Dispose()
+    {
+        LogStore.OnNewEntry -= OnNewEntry;
+    }
+}

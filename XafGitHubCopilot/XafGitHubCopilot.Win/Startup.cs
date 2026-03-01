@@ -127,7 +127,9 @@ namespace XafGitHubCopilot.Win
             {
                 var schemaService = winApplication.ServiceProvider.GetRequiredService<SchemaDiscoveryService>();
                 copilotService.SystemMessage = schemaService.GenerateSystemPrompt();
-                var toolsProvider = new CopilotToolsProvider(winApplication.ServiceProvider, schemaService);
+                var activeViewContext = winApplication.ServiceProvider.GetService<ActiveViewContext>();
+                var toolsProvider = new CopilotToolsProvider(winApplication.ServiceProvider, schemaService,
+                    navigationService: null, activeViewContext: activeViewContext);
                 copilotService.Tools = toolsProvider.Tools;
             }
             catch (Exception ex)

@@ -20,6 +20,7 @@
 
     <link href="_content/DevExpress.ExpressApp.Blazor/styles.css" asp-append-version="true" rel="stylesheet" />
     <link href="css/site.css" rel="stylesheet" />
+    <link href="css/copilot-side-panel.css" rel="stylesheet" />
     <!-- Uncomment this link to enable CSS isolation. For more information, refer to the following topic: https://learn.microsoft.com/en-us/aspnet/core/blazor/components/css-isolation -->
     <!-- <link href="XafGitHubCopilot.Blazor.Server.styles.css" rel="stylesheet"> -->
 
@@ -34,5 +35,11 @@
     </div>
 
     <script src="_framework/blazor.server.js"></script>
+    <script>
+        function copilotLogAutoScroll() {
+            var el = document.getElementById('copilotLogEntries');
+            if (el) el.scrollTop = el.scrollHeight;
+        }
+    </script>
 </body>
 </html>

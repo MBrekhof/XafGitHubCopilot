@@ -32,6 +32,8 @@ namespace XafGitHubCopilot.Blazor.Server
             services.AddHttpContextAccessor();
             services.AddCopilotSdk(Configuration);
             services.AddDevExpressAI();
+            services.AddSingleton<BlazorNavigationService>();
+            services.AddSingleton<INavigationService>(sp => sp.GetRequiredService<BlazorNavigationService>());
             services.AddScoped<CircuitHandler, CircuitHandlerProxy>();
             services.AddXaf(Configuration, builder =>
             {

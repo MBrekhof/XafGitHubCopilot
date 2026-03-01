@@ -20,15 +20,18 @@ namespace XafGitHubCopilot.Module.Controllers
         /// </summary>
         private static readonly string[] AvailableModels = new[]
         {
-            "gpt-4o",
-            "gpt-4o-mini",
+            "claude-sonnet-4.6",
+            "claude-sonnet-4.5",
+            "claude-sonnet-4",
+            "claude-opus-4.6",
             "gpt-4.1",
             "gpt-4.1-mini",
             "gpt-4.1-nano",
+            "gpt-4o",
+            "gpt-4o-mini",
             "gpt-5",
             "o3-mini",
             "o4-mini",
-            "claude-sonnet-4",
             "gemini-2.5-pro",
         };
 

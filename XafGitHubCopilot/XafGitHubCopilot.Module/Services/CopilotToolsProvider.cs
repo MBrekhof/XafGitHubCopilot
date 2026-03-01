@@ -23,24 +23,48 @@ namespace XafGitHubCopilot.Module.Services
         private readonly IServiceProvider _serviceProvider;
         private readonly SchemaDiscoveryService _schemaService;
         private readonly ILogger<CopilotToolsProvider> _logger;
+        private readonly INavigationService _navigationService;
+        private readonly ActiveViewContext _activeViewContext;
         private List<AIFunction> _tools;
 
-        public CopilotToolsProvider(IServiceProvider serviceProvider, SchemaDiscoveryService schemaService)
+        public CopilotToolsProvider(IServiceProvider serviceProvider, SchemaDiscoveryService schemaService,
+            INavigationService navigationService = null, ActiveViewContext activeViewContext = null)
         {
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             _schemaService = schemaService ?? throw new ArgumentNullException(nameof(schemaService));
             _logger = serviceProvider.GetRequiredService<ILogger<CopilotToolsProvider>>();
+            _navigationService = navigationService;
+            _activeViewContext = activeViewContext;
         }
 
         public IReadOnlyList<AIFunction> Tools => _tools ??= CreateTools();
 
-        private List<AIFunction> CreateTools() =>
-        [
-            AIFunctionFactory.Create(ListEntities, "list_entities"),
-            AIFunctionFactory.Create(DescribeEntity, "describe_entity"),
-            AIFunctionFactory.Create(QueryEntity, "query_entity"),
-            AIFunctionFactory.Create(CreateEntity, "create_entity"),
-        ];
+        private List<AIFunction> CreateTools()
+        {
+            var tools = new List<AIFunction>
+            {
+                AIFunctionFactory.Create(ListEntities, "list_entities"),
+                AIFunctionFactory.Create(DescribeEntity, "describe_entity"),
+                AIFunctionFactory.Create(QueryEntity, "query_entity"),
+                AIFunctionFactory.Create(CreateEntity, "create_entity"),
+            };
+
+            if (_navigationService != null)
+            {
+                tools.Add(AIFunctionFactory.Create(NavigateToList, "navigate_to_list"));
+                tools.Add(AIFunctionFactory.Create(NavigateToDetail, "navigate_to_detail"));
+                tools.Add(AIFunctionFactory.Create(FilterActiveList, "filter_active_list"));
+                tools.Add(AIFunctionFactory.Create(ClearActiveListFilter, "clear_active_list_filter"));
+            }
+
+            if (_activeViewContext != null)
+            {
+                tools.Add(AIFunctionFactory.Create(GetActiveView, "get_active_view"));
+                tools.Add(AIFunctionFactory.Create(UpdateEntity, "update_entity"));
+            }
+
+            return tools;
+        }
 
         // -- Helpers ---------------------------------------------------------------
 
@@ -490,6 +514,7 @@ namespace XafGitHubCopilot.Module.Services
                 }
 
                 os.CommitChanges();
+                _navigationService?.RefreshActiveView();
 
                 var summary = string.Join(" | ", setProperties);
                 var result = $"{entityInfo.Name} created successfully! {summary}";
@@ -500,6 +525,314 @@ namespace XafGitHubCopilot.Module.Services
             {
                 _logger.LogError(ex, "[Tool:create_entity] Error");
                 return $"Error creating {entityName}: {ex.Message}";
+            }
+        }
+
+        // -- Navigation tools ------------------------------------------------------
+
+        [Description("Navigate the user's application to the list view showing all records of an entity. Use this when the user wants to see or browse data in the app.")]
+        private string NavigateToList(
+            [Description("Entity name to navigate to (e.g. 'Customer', 'Order'). Use list_entities to see available names.")] string entityName)
+        {
+            _logger.LogInformation("[Tool:navigate_to_list] Called with entity={Entity}", entityName);
+            try
+            {
+                if (string.IsNullOrWhiteSpace(entityName))
+                    return $"Entity name is required. Available entities: {GetEntityNameList()}";
+
+                var entityInfo = _schemaService.Schema.FindEntity(entityName);
+                if (entityInfo == null)
+                    return $"Entity '{entityName}' not found. Available entities: {GetEntityNameList()}";
+
+                _navigationService.NavigateToListView(entityName);
+                return $"Navigating to {entityInfo.Name} list view.";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[Tool:navigate_to_list] Error");
+                return $"Error navigating to {entityName}: {ex.Message}";
+            }
+        }
+
+        [Description("Navigate the user's application to a specific record's detail view. Use this when the user wants to open or view a particular record.")]
+        private string NavigateToDetail(
+            [Description("Entity name (e.g. 'Customer', 'Order'). Use list_entities to see available names.")] string entityName,
+            [Description("The record identifier — either a primary key (GUID) or a search term to match by name.")] string identifier)
+        {
+            _logger.LogInformation("[Tool:navigate_to_detail] Called with entity={Entity}, id={Id}", entityName, identifier);
+            try
+            {
+                if (string.IsNullOrWhiteSpace(entityName))
+                    return $"Entity name is required. Available entities: {GetEntityNameList()}";
+
+                var entityInfo = _schemaService.Schema.FindEntity(entityName);
+                if (entityInfo == null)
+                    return $"Entity '{entityName}' not found. Available entities: {GetEntityNameList()}";
+
+                if (string.IsNullOrWhiteSpace(identifier))
+                    return $"An identifier (key or search term) is required to find the record.";
+
+                _navigationService.NavigateToDetailView(entityName, identifier);
+                return $"Navigating to {entityInfo.Name} record matching '{identifier}'.";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[Tool:navigate_to_detail] Error");
+                return $"Error navigating to {entityName} detail: {ex.Message}";
+            }
+        }
+
+        // -- Active view tools ---------------------------------------------------------
+
+        [Description("Get information about what the user is currently viewing in the application. Returns the entity name, view type (list or detail), view ID, and for detail views the specific record being viewed. Always call this first when the user refers to 'this record', 'the current view', 'this list', etc.")]
+        private string GetActiveView()
+        {
+            _logger.LogInformation("[Tool:get_active_view] Called");
+            try
+            {
+                if (_activeViewContext == null || _activeViewContext.EntityName == null)
+                    return "No active view context available.";
+
+                var entityInfo = _schemaService.Schema.FindEntity(_activeViewContext.EntityName);
+                var sb = new StringBuilder();
+                sb.AppendLine($"The user is currently viewing: **{_activeViewContext.EntityName}** ({(_activeViewContext.IsListView ? "List View" : "Detail View")})");
+                sb.AppendLine($"View ID: {_activeViewContext.ViewId}");
+
+                if (!_activeViewContext.IsListView && _activeViewContext.CurrentObjectDisplay != null)
+                {
+                    sb.AppendLine($"Current record: **{_activeViewContext.CurrentObjectDisplay}** (key: {_activeViewContext.CurrentObjectKey})");
+
+                    // Show the record's current field values so the AI knows what can be changed
+                    if (entityInfo != null && _activeViewContext.CurrentObjectKey != null)
+                    {
+                        try
+                        {
+                            using var sos = GetObjectSpace(entityInfo.ClrType);
+                            var typeInfo = XafTypesInfo.Instance.FindTypeInfo(entityInfo.ClrType);
+                            var key = ConvertValue(_activeViewContext.CurrentObjectKey, typeInfo.KeyMember.MemberType);
+                            var obj = sos.Os.GetObjectByKey(entityInfo.ClrType, key);
+                            if (obj != null)
+                            {
+                                sb.AppendLine($"Fields: {FormatObject(obj, entityInfo, typeInfo)}");
+                            }
+                        }
+                        catch
+                        {
+                            // Best effort — don't fail the tool if we can't load the record
+                        }
+                    }
+                }
+
+                if (entityInfo != null && _activeViewContext.IsListView)
+                {
+                    var props = string.Join(", ", entityInfo.Properties.Select(p => p.Name));
+                    sb.AppendLine($"Available properties for filtering: {props}");
+                    var rels = entityInfo.Relationships.Where(r => !r.IsCollection).Select(r => r.PropertyName);
+                    if (rels.Any())
+                        sb.AppendLine($"Relationships (can filter by): {string.Join(", ", rels)}");
+                }
+
+                if (entityInfo != null && !_activeViewContext.IsListView)
+                {
+                    var props = string.Join(", ", entityInfo.Properties.Select(p => p.Name));
+                    sb.AppendLine($"Editable properties: {props}");
+                    sb.AppendLine("Use update_entity to modify this record's fields.");
+                }
+
+                return sb.ToString();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[Tool:get_active_view] Error");
+                return $"Error getting active view: {ex.Message}";
+            }
+        }
+
+        [Description("Filter the currently active list view using DevExpress criteria syntax. Use get_active_view first to know what entity is displayed. Common patterns: [PropertyName] = 'value', Contains([PropertyName], 'text'), [Category.Name] = 'Grains', [Price] > 10.")]
+        private string FilterActiveList(
+            [Description("DevExpress criteria expression. Examples: \"[Category.Name] = 'Grains'\", \"Contains([CompanyName], 'market')\", \"[UnitPrice] > 20\", \"[Status] = 'Active' And [Country] = 'USA'\"")] string criteria)
+        {
+            _logger.LogInformation("[Tool:filter_active_list] Called with criteria={Criteria}", criteria);
+            try
+            {
+                if (_activeViewContext == null || !_activeViewContext.IsListView)
+                    return "No active list view to filter. Use navigate_to_list first to open a list view.";
+
+                if (string.IsNullOrWhiteSpace(criteria))
+                    return "A criteria expression is required. Example: [Category.Name] = 'Grains'";
+
+                _navigationService.FilterActiveList(criteria);
+                return $"Filter applied to {_activeViewContext.EntityName} list: {criteria}";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[Tool:filter_active_list] Error");
+                return $"Error filtering list: {ex.Message}";
+            }
+        }
+
+        [Description("Remove the AI-applied filter from the currently active list view, showing all records again.")]
+        private string ClearActiveListFilter()
+        {
+            _logger.LogInformation("[Tool:clear_active_list_filter] Called");
+            try
+            {
+                if (_activeViewContext == null || !_activeViewContext.IsListView)
+                    return "No active list view to clear filter from.";
+
+                _navigationService.ClearActiveListFilter();
+                return $"Filter cleared from {_activeViewContext.EntityName} list. All records are now visible.";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[Tool:clear_active_list_filter] Error");
+                return $"Error clearing filter: {ex.Message}";
+            }
+        }
+
+        // -- Update tool ---------------------------------------------------------------
+
+        [Description("Update (modify) an existing record in the database. Use get_active_view first to find the current record's key when the user says 'this record' or 'change this'. You can also update any record by providing its entity name and identifier.")]
+        private string UpdateEntity(
+            [Description("Entity name (e.g. 'Customer', 'Supplier', 'Product'). Use list_entities to see available names.")] string entityName,
+            [Description("The record identifier — either the primary key (GUID) or a search term to match by name. Use get_active_view to get the key of the currently viewed record.")] string identifier,
+            [Description("Semicolon-separated 'PropertyName=value' pairs for fields to update. Example: 'ContactName=Just Testing;Country=Netherlands'. For reference properties, provide a search term to match by name.")] string properties)
+        {
+            _logger.LogInformation("[Tool:update_entity] Called with entity={Entity}, id={Id}, properties={Props}", entityName, identifier, properties);
+            try
+            {
+                if (string.IsNullOrWhiteSpace(entityName))
+                    return $"Entity name is required. Available entities: {GetEntityNameList()}";
+
+                var entityInfo = _schemaService.Schema.FindEntity(entityName);
+                if (entityInfo == null)
+                    return $"Entity '{entityName}' not found. Available entities: {GetEntityNameList()}";
+
+                if (string.IsNullOrWhiteSpace(identifier))
+                    return "An identifier (key or search term) is required. Use get_active_view to get the key of the current record.";
+
+                if (string.IsNullOrWhiteSpace(properties))
+                {
+                    var availableProps = string.Join(", ", entityInfo.Properties.Select(p => p.Name));
+                    return $"Properties to update are required. {entityInfo.Name} properties: {availableProps}";
+                }
+
+                var entityType = entityInfo.ClrType;
+                using var sos = GetObjectSpace(entityType);
+                var os = sos.Os;
+                var typeInfo = XafTypesInfo.Instance.FindTypeInfo(entityType);
+
+                // Try to find the object by primary key first, then by display text search
+                object obj = null;
+                try
+                {
+                    var key = ConvertValue(identifier, typeInfo.KeyMember.MemberType);
+                    obj = os.GetObjectByKey(entityType, key);
+                }
+                catch
+                {
+                    // Not a valid key format — fall through to search
+                }
+
+                if (obj == null)
+                {
+                    // Search by display text
+                    var allObjects = os.GetObjects(entityType);
+                    foreach (var candidate in allObjects)
+                    {
+                        var display = GetObjectDisplayText(candidate);
+                        if (display != null && display.IndexOf(identifier, StringComparison.OrdinalIgnoreCase) >= 0)
+                        {
+                            obj = candidate;
+                            break;
+                        }
+                    }
+                }
+
+                if (obj == null)
+                    return $"No {entityInfo.Name} record found matching '{identifier}'.";
+
+                var pairs = ParsePairs(properties);
+                var updatedProperties = new List<string>();
+
+                foreach (var (key, value) in pairs)
+                {
+                    // Check scalar property
+                    var propInfo = entityInfo.Properties
+                        .FirstOrDefault(p => p.Name.Equals(key, StringComparison.OrdinalIgnoreCase));
+                    if (propInfo != null)
+                    {
+                        var member = typeInfo.FindMember(propInfo.Name);
+                        if (member != null)
+                        {
+                            try
+                            {
+                                var oldVal = member.GetValue(obj);
+                                var converted = ConvertValue(value, propInfo.ClrType);
+                                member.SetValue(obj, converted);
+                                updatedProperties.Add($"{propInfo.Name}: {FormatValue(oldVal)} → {FormatValue(converted)}");
+                            }
+                            catch (Exception ex)
+                            {
+                                return $"Error setting {propInfo.Name}: cannot convert '{value}' to {propInfo.TypeName}. {ex.Message}";
+                            }
+                        }
+                        continue;
+                    }
+
+                    // Check to-one relationship
+                    var relInfo = entityInfo.Relationships
+                        .FirstOrDefault(r => !r.IsCollection && r.PropertyName.Equals(key, StringComparison.OrdinalIgnoreCase));
+                    if (relInfo != null)
+                    {
+                        var refObjects = os.GetObjects(relInfo.TargetClrType);
+                        object matched = null;
+                        foreach (var refObj in refObjects)
+                        {
+                            var display = GetObjectDisplayText(refObj);
+                            if (display.IndexOf(value, StringComparison.OrdinalIgnoreCase) >= 0)
+                            {
+                                matched = refObj;
+                                break;
+                            }
+                        }
+
+                        if (matched == null)
+                        {
+                            var available = refObjects.Cast<object>()
+                                .Take(10)
+                                .Select(GetObjectDisplayText);
+                            return $"{relInfo.PropertyName} '{value}' not found. Available {relInfo.TargetEntity} records: {string.Join(", ", available)}";
+                        }
+
+                        var member = typeInfo.FindMember(relInfo.PropertyName);
+                        if (member != null)
+                        {
+                            var oldRef = member.GetValue(obj);
+                            member.SetValue(obj, matched);
+                            updatedProperties.Add($"{relInfo.PropertyName}: {GetObjectDisplayText(oldRef)} → {GetObjectDisplayText(matched)}");
+                        }
+                        continue;
+                    }
+
+                    var allProps = string.Join(", ", entityInfo.Properties.Select(p => p.Name)
+                        .Concat(entityInfo.Relationships.Where(r => !r.IsCollection).Select(r => r.PropertyName)));
+                    return $"Property '{key}' not found on {entityInfo.Name}. Available: {allProps}";
+                }
+
+                os.CommitChanges();
+                _navigationService?.RefreshActiveView();
+
+                var summary = string.Join(" | ", updatedProperties);
+                var displayName = GetObjectDisplayText(obj);
+                var result = $"{entityInfo.Name} '{displayName}' updated successfully! Changes: {summary}";
+                _logger.LogInformation("[Tool:update_entity] {Result}", result);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[Tool:update_entity] Error");
+                return $"Error updating {entityName}: {ex.Message}";
             }
         }
     }

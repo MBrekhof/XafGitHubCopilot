@@ -2,6 +2,7 @@ using System;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace XafGitHubCopilot.Module.Services
 {
@@ -15,9 +16,20 @@ namespace XafGitHubCopilot.Module.Services
             services.Configure<CopilotOptions>(configuration.GetSection(CopilotOptions.SectionName));
             services.AddSingleton<CopilotChatService>();
             services.AddSingleton<SchemaDiscoveryService>();
+            services.AddSingleton<ActiveViewContext>();
+
+            // Log store + logger provider for the AI log viewer panel.
+            services.AddSingleton<CopilotLogStore>();
+            services.AddSingleton<ILoggerProvider, CopilotLoggerProvider>();
 
             // Register the tools provider (singleton — tools are created lazily on first access).
-            services.AddSingleton<CopilotToolsProvider>();
+            // Use a factory to handle optional services (INavigationService may not be registered on WinForms).
+            services.AddSingleton<CopilotToolsProvider>(sp =>
+                new CopilotToolsProvider(
+                    sp,
+                    sp.GetRequiredService<SchemaDiscoveryService>(),
+                    sp.GetService<INavigationService>(),
+                    sp.GetService<ActiveViewContext>()));
 
             // Register the IChatClient adapter so DevExpress DxAIChat / AIChatControl
             // can route messages through the GitHub Copilot SDK automatically.
