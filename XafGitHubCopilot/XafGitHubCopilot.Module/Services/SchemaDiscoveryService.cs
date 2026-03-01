@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -113,11 +114,13 @@ namespace XafGitHubCopilot.Module.Services
                 }
 
                 var aiDescription = typeInfo.Type.GetCustomAttribute<AIDescriptionAttribute>();
+                var tableAttr = typeInfo.Type.GetCustomAttribute<TableAttribute>();
 
                 var entityInfo = new EntityInfo
                 {
                     Name = typeInfo.Name,
                     Description = aiDescription?.Description,
+                    TableName = tableAttr?.Name ?? typeInfo.Name,
                     ClrType = typeInfo.Type,
                 };
 
@@ -136,8 +139,9 @@ namespace XafGitHubCopilot.Module.Services
                     if (memberAiVisible is { IsVisible: false })
                         continue;
 
-                    // Read [AIDescription] on the property
+                    // Read [AIDescription] and [Column] on the property
                     var memberAiDescription = memberClrProp?.GetCustomAttribute<AIDescriptionAttribute>();
+                    var columnAttr = memberClrProp?.GetCustomAttribute<ColumnAttribute>();
 
                     // Navigation / collection property
                     if (member.IsList)
@@ -174,6 +178,7 @@ namespace XafGitHubCopilot.Module.Services
                     {
                         Name = member.Name,
                         Description = memberAiDescription?.Description,
+                        ColumnName = columnAttr?.Name ?? member.Name,
                         TypeName = GetFriendlyTypeName(member.MemberType),
                         ClrType = member.MemberType,
                         IsRequired = !IsNullableType(member.MemberType),
@@ -235,6 +240,7 @@ namespace XafGitHubCopilot.Module.Services
     {
         public string Name { get; set; }
         public string Description { get; set; }
+        public string TableName { get; set; }
         public Type ClrType { get; set; }
         public List<EntityPropertyInfo> Properties { get; set; } = new();
         public List<RelationshipInfo> Relationships { get; set; } = new();
@@ -244,6 +250,7 @@ namespace XafGitHubCopilot.Module.Services
     {
         public string Name { get; set; }
         public string Description { get; set; }
+        public string ColumnName { get; set; }
         public string TypeName { get; set; }
         public Type ClrType { get; set; }
         public bool IsRequired { get; set; }

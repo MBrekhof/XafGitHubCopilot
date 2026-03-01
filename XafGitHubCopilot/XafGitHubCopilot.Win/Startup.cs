@@ -2,6 +2,7 @@
 using DevExpress.EntityFrameworkCore.Security;
 using DevExpress.ExpressApp;
 using DevExpress.ExpressApp.ApplicationBuilder;
+using Microsoft.Extensions.AI;
 using DevExpress.ExpressApp.Design;
 using DevExpress.ExpressApp.EFCore;
 using DevExpress.ExpressApp.Security;
@@ -48,6 +49,11 @@ namespace XafGitHubCopilot.Win
             // System message is set after Build() when SchemaDiscoveryService is available.
 
             var copilotChatClient = new CopilotChatClient(copilotService);
+
+            // Register CopilotChatClient as keyed service for the chat UI (AIChatControl uses ChatClientServiceKey).
+            builder.Services.AddKeyedSingleton<IChatClient>("copilot", copilotChatClient);
+
+            // Register with DevExpress desktop AI container for AIChatControl resolution.
             AIExtensionsContainerDesktop.Default.RegisterChatClient(copilotChatClient);
             // Register 3rd-party IoC containers (like Autofac, Dryloc, etc.)
             // builder.UseServiceProviderFactory(new DryIocServiceProviderFactory());
