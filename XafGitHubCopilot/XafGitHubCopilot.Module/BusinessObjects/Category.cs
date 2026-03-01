@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using DevExpress.Persistent.Base;
 using DevExpress.Persistent.BaseImpl.EF;
+using XafGitHubCopilot.Module.Attributes;
 
 namespace XafGitHubCopilot.Module.BusinessObjects
 {
@@ -10,6 +11,8 @@ namespace XafGitHubCopilot.Module.BusinessObjects
     [NavigationItem("Catalog")]
     [ImageName("BO_Category")]
     [DefaultProperty(nameof(Name))]
+    [AIVisible]
+    [AIDescription("Product categories for organizing the catalog")]
     public class Category : BaseObject
     {
         [StringLength(128)]

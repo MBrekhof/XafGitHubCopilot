@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using DevExpress.Persistent.Base;
 using DevExpress.Persistent.BaseImpl.EF;
+using XafGitHubCopilot.Module.Attributes;
 
 namespace XafGitHubCopilot.Module.BusinessObjects
 {
@@ -10,6 +11,8 @@ namespace XafGitHubCopilot.Module.BusinessObjects
     [NavigationItem("Geography")]
     [ImageName("BO_Shipment")]
     [DefaultProperty(nameof(CompanyName))]
+    [AIVisible]
+    [AIDescription("Shipping companies that deliver orders")]
     public class Shipper : BaseObject
     {
         [StringLength(128)]

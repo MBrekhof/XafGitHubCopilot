@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using DevExpress.Persistent.Base;
 using DevExpress.Persistent.BaseImpl.EF;
+using XafGitHubCopilot.Module.Attributes;
 
 namespace XafGitHubCopilot.Module.BusinessObjects
 {
@@ -11,6 +12,8 @@ namespace XafGitHubCopilot.Module.BusinessObjects
     [NavigationItem("Catalog")]
     [ImageName("BO_Product")]
     [DefaultProperty(nameof(Name))]
+    [AIVisible]
+    [AIDescription("Products in the catalog with pricing, stock levels, and supplier information")]
     public class Product : BaseObject
     {
         [StringLength(128)]

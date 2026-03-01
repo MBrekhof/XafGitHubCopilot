@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations.Schema;
 using DevExpress.Persistent.Base;
 using DevExpress.Persistent.BaseImpl.EF;
+using XafGitHubCopilot.Module.Attributes;
 
 namespace XafGitHubCopilot.Module.BusinessObjects
 {
@@ -9,6 +10,8 @@ namespace XafGitHubCopilot.Module.BusinessObjects
     [NavigationItem("Sales")]
     [ImageName("BO_OrderItem")]
     [DefaultProperty(nameof(Quantity))]
+    [AIVisible]
+    [AIDescription("Line items within an order linking products to quantities and pricing")]
     public class OrderItem : BaseObject
     {
         [Column(TypeName = "decimal(18,2)")]
