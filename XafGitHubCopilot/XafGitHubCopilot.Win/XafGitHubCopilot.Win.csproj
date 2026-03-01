@@ -44,7 +44,7 @@
     <PackageReference Include="DevExpress.AIIntegration.WinForms.Chat" Version="25.2.4" />
     <PackageReference Include="DevExpress.RichEdit.Export" Version="25.2.4" />
     <PackageReference Include="DevExpress.Win.Design" Version="25.2.4" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.18" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.*" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.*" />
   </ItemGroup>
   <ItemGroup>
